@@ -33,45 +33,79 @@ def deconvGradDescent(im_blur, kernel, niter=1000):
 
 # === Deconvolution with conjugate gradient ===
 
-def computeGradientStepSize(r, d, kernel):
-  return alpha
+def computeGradientStepSize(r, d, kernel):  
+  return dotIm(r, r) / dotIm(d, applyConjugatedKernel(applyKernel(d, kernel), kernel))
 
 def computeConjugateDirectionStepSize(old_r, new_r):
-  return beta
+  return dotIm(new_r, new_r) / dotIm(old_r, old_r)
 
 def deconvCG(im_blur, kernel, niter=10):
   ''' return deblurred image '''
-  return im
+  #Adi = applyConjugatedKernel(applyKernel(di, kernel), kernel)
+  M = kernel
+  x = np.zeros(np.shape(im_blur))
+  y = im_blur
+  d = applyConjugatedKernel(y, M) - applyConjugatedKernel(applyKernel(x, M), M)
+  r_old = d.copy()
+  r_new = d.copy()
+  for step in xrange(niter):
+    alpha = computeGradientStepSize(r_new, d, M)
+    beta = computeConjugateDirectionStepSize(r_old, r_new)
+    x += alpha * d
+    r_old = r_new.copy()
+    r_new = r_old - alpha * applyConjugatedKernel(applyKernel(d, M), M)
+    d = r_new + beta * d    
+  return x
 
 def laplacianKernel():
   ''' a 3-by-3 array '''
-  return laplacian_kernel
+  return np.array([[ 0, -1,  0],
+                   [-1,  4, -1],
+                   [ 0, -1,  0]]) 
 
 def applyLaplacian(im):
   ''' return Lx (x is im)'''
-  return out
+  return applyKernel(im, laplacianKernel()) 
 
 def applyAMatrix(im, kernel):
   ''' return Ax, where A = M^TM'''
-  return out
+  return applyConjugatedKernel(applyKernel(im, kernel), kernel)
 
 def applyRegularizedOperator(im, kernel, lamb):
   ''' (A + lambda L )x'''
-  return out
+  return applyAMatrix(im, kernel) + lamb * applyLaplacian(im)
 
 
 def computeGradientStepSize_reg(grad, p, kernel, lamb):
-  return alpha
+  ''' returns alpha '''
+  return dotIm(grad, grad) / dotIm(p, applyRegularizedOperator(p, kernel, lamb))
 
 def deconvCG_reg(im_blur, kernel, lamb=0.05, niter=10):
   ''' return deblurred and regularized im '''
-
-  return im
+  M = kernel
+  x = np.zeros(np.shape(im_blur))
+  y = im_blur
+  d = applyRegularizedOperator(y, M, lamb) - applyAMatrix(x, M)
+  r_old = d.copy()
+  r_new = d.copy()
+  for step in xrange(niter):
+    alpha = computeGradientStepSize_reg(r_new, d, M, lamb)    
+    beta = computeConjugateDirectionStepSize(r_old, r_new)
+    x += alpha * d
+    r_old = r_new.copy()
+    r_new = r_old - alpha * applyAMatrix(d, M)
+    d = r_new + beta * d    
+  return x
 
     
 def naiveComposite(bg, fg, mask, y, x):
-  ''' naive composition'''
-  return out
+  ''' naive composition'''    
+  (height, width, rgb) = np.shape(fg)  
+  validPixels = fg * mask
+  invalidPixels = bg[y:y+height, x:x+width] * (1 - mask)  
+  bg[y:y+height, x:x+width] = validPixels
+  bg[y:y+height, x:x+width] += invalidPixels
+  return bg
 
 def Poisson(bg, fg, mask, niter=200):
   ''' Poisson editing using gradient descent'''

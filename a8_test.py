@@ -121,11 +121,11 @@ def test_PoissonCG():
 
 
 
-test_grad_descent()
-#test_conjugate_grad_descent()
+##test_grad_descent()
+##test_conjugate_grad_descent()
 ##test_real_psf()
 ##test_conjugate_grad_descent_reg()
-##test_naive_composite()
+test_naive_composite()
 ##test_Poisson()
 ##test_PoissonCG()
 
